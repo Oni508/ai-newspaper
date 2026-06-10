@@ -104,9 +104,9 @@ Do not provide:
 
 Follow this dependency direction:
 
-- entrypoints -> usecases -> domain
-- infrastructure -> adapters -> domain
-- usecases -> adapter ports -> domain
+- `entrypoints -> usecases -> domain`
+- `infrastructure -> adapters -> domain`
+- `usecases -> adapter ports -> domain`
 
 Do not let usecases directly import infrastructure implementations.
 Do not put external I/O inside domain.
@@ -143,3 +143,19 @@ uv run ai-newspaper prune
 uv run pytest
 uv run ruff check .
 uv run mypy src
+```
+
+## Documentation
+
+- `docs/requirements.md` defines the product requirements and explicit non-goals.
+- `docs/architecture.md` defines the implementation architecture and dependency rules.
+- Keep these documents aligned when changing requirements, commands, or architecture.
+
+## Implementation Notes
+
+- Keep the first version small and batch-oriented.
+- Prefer deterministic, testable usecases over hidden side effects.
+- Make Dummy Analyzer usable without network access or paid services.
+- Treat local LLM integration as an adapter behind a port.
+- Keep generated HTML files out of source code concerns and under `data/digests/`.
+- Do not add stock APIs, price prediction features, or investment advice flows.
