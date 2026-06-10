@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>AI Newspaper - {{ digest.edition.generated_at.strftime("%Y-%m-%d %H:%M") }}</title>
+  </head>
+  <body>
+    <header>
+      <h1>AI Newspaper</h1>
+      <p>{{ digest.edition.label }}</p>
+      <p>{{ digest.edition.generated_at.strftime("%Y-%m-%d %H:%M") }}</p>
+    </header>
+    <main>
+      {% if digest.articles %}
+        {% for article in digest.articles %}
+          <article>
+            <h2>{{ article.title }}</h2>
+            <p>{{ article.source_name }} / {{ article.category.value }}</p>
+            <p><a href="{{ article.url }}">{{ article.url }}</a></p>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p>No articles have been fetched yet.</p>
+      {% endif %}
+    </main>
+  </body>
+</html>
