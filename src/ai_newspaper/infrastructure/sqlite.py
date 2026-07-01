@@ -1,9 +1,19 @@
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
+from sqlite3 import Connection
+
+from ai_newspaper.infrastructure.persistence.schema import initialize_database
+from ai_newspaper.infrastructure.persistence.sqlite import (
+    connect as _connect,
+)
+from ai_newspaper.infrastructure.persistence.sqlite import (
+    open_connection,
+)
 
 
-def connect(database_path: Path) -> sqlite3.Connection:
-    database_path.parent.mkdir(parents=True, exist_ok=True)
-    return sqlite3.connect(database_path)
+def connect(database_path: Path) -> Connection:
+    return _connect(database_path)
+
+
+__all__ = ["connect", "initialize_database", "open_connection"]

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from ai_newspaper.domain.models import AnalysisResult, Article
+from ai_newspaper.infrastructure.persistence.article_repository import (
+    SqliteArticleRepository,
+)
 
 
 class InMemoryArticleRepository:
@@ -22,21 +25,4 @@ class InMemoryArticleRepository:
     def list_analyses(self) -> list[AnalysisResult]:
         return list(self._analyses)
 
-
-class SqliteArticleRepository:
-    """Placeholder for the SQLite article repository adapter."""
-
-    def __init__(self, database_path: str) -> None:
-        self.database_path = database_path
-
-    def save_articles(self, articles: list[Article]) -> None:
-        raise NotImplementedError("SQLite article repository is not implemented yet.")
-
-    def list_articles(self) -> list[Article]:
-        raise NotImplementedError("SQLite article repository is not implemented yet.")
-
-    def save_analyses(self, analyses: list[AnalysisResult]) -> None:
-        raise NotImplementedError("SQLite article repository is not implemented yet.")
-
-    def list_analyses(self) -> list[AnalysisResult]:
-        raise NotImplementedError("SQLite article repository is not implemented yet.")
+__all__ = ["InMemoryArticleRepository", "SqliteArticleRepository"]

@@ -5,13 +5,11 @@ from collections.abc import Sequence
 
 from ai_newspaper.adapters.analyzers.dummy import DummyAnalyzer
 from ai_newspaper.adapters.renderers.jinja_html_renderer import JinjaHtmlRenderer
-from ai_newspaper.adapters.repositories.sqlite_article_repository import (
-    InMemoryArticleRepository,
-)
 from ai_newspaper.adapters.sources.rss_feed_source import RssFeedSource
 from ai_newspaper.adapters.storage.filesystem_digest_store import FilesystemDigestStore
 from ai_newspaper.infrastructure.clock import SystemClock
 from ai_newspaper.infrastructure.config import default_paths
+from ai_newspaper.infrastructure.persistence import SqliteArticleRepository
 from ai_newspaper.usecases.analyze_articles import AnalyzeArticles
 from ai_newspaper.usecases.fetch_articles import FetchArticles
 from ai_newspaper.usecases.prune_digests import PruneDigests
@@ -71,7 +69,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 class _Application:
     def __init__(self) -> None:
         paths = default_paths()
-        repository = InMemoryArticleRepository()
+        repository = SqliteArticleRepository(
+            paths.database_dir / "ai_newspaper.sqlite3"
+        )
         source = RssFeedSource()
         analyzer = DummyAnalyzer()
         renderer = JinjaHtmlRenderer(paths.template_dir)

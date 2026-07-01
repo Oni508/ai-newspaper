@@ -59,7 +59,12 @@ src/ai_newspaper/
     storage/
       filesystem_digest_store.py
   infrastructure/
-    sqlite.py
+    persistence/
+      sqlite.py
+      schema.py
+      article_repository.py
+      topic_repository.py
+      digest_repository.py
     config.py
     clock.py
   entrypoints/
@@ -260,13 +265,16 @@ SQLite is preferred for local storage.
 The repository adapter should own SQL details. Usecases should call repository
 ports and should not know table names or SQL statements.
 
-Potential tables:
+Initial tables:
 
 - `articles`
-- `analysis_results`
+- `topics`
+- `topic_articles`
+- `analyses`
 - `digests`
 
-Schema details should be decided during implementation.
+Repository implementations live under `infrastructure/persistence/` and
+implement adapter ports without exposing SQL details to usecases.
 
 ## Pruning
 
