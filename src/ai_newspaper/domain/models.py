@@ -11,6 +11,13 @@ class Category(StrEnum):
     INTERNATIONAL_AFFAIRS = "international_affairs"
 
 
+class Importance(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
 @dataclass(frozen=True)
 class ArticleSource:
     name: str
@@ -19,13 +26,14 @@ class ArticleSource:
 
 
 @dataclass(frozen=True)
-class Article:
-    title: str
-    url: str
-    source_name: str
+class Topic:
+    name: str
     category: Category
-    published_at: datetime | None = None
-    summary: str = ""
+    importance: Importance = Importance.MEDIUM
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("topic name must not be empty")
 
 
 @dataclass(frozen=True)
@@ -43,6 +51,16 @@ class AnalysisResult:
 class DigestEdition:
     generated_at: datetime
     label: str
+
+
+@dataclass(frozen=True)
+class Article:
+    title: str
+    url: str
+    source_name: str
+    category: Category
+    published_at: datetime | None = None
+    summary: str = ""
 
 
 @dataclass(frozen=True)
