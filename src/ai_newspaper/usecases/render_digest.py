@@ -3,20 +3,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ai_newspaper.domain.models import Digest, DigestEdition
-from ai_newspaper.usecases.ports import (
+from ai_newspaper.adapters.ports import (
     ArticleRepositoryPort,
     ClockPort,
     DigestRendererPort,
-    DigestStorePort,
+    FileStoragePort,
 )
+from ai_newspaper.domain.models import Digest, DigestEdition
 
 
 @dataclass(frozen=True)
 class RenderDigest:
     repository: ArticleRepositoryPort
     renderer: DigestRendererPort
-    store: DigestStorePort
+    store: FileStoragePort
     clock: ClockPort
 
     def execute(self) -> Path:

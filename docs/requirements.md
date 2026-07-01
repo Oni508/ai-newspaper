@@ -138,9 +138,9 @@ The system must support at least two analyzer implementations:
 The Dummy Analyzer must work without network access, paid APIs, or external LLM
 services.
 
-The local LLM analyzer should be implemented behind a port so that concrete
-local runtime choices, such as Ollama or another local service, do not leak into
-usecase code.
+The local LLM analyzer should be implemented behind `NewsAnalyzerPort` so that
+concrete local runtime choices, such as Ollama or another local service, do not
+leak into usecase code.
 
 ## Storage Requirements
 

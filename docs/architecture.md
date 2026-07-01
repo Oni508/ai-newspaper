@@ -40,13 +40,13 @@ src/ai_newspaper/
     models.py
     policies.py
   usecases/
-    ports.py
     fetch_articles.py
     analyze_articles.py
     render_digest.py
     prune_digests.py
     run_pipeline.py
   adapters/
+    ports/
     analyzers/
       dummy.py
       local_llm.py
@@ -116,28 +116,29 @@ Usecases should express workflow decisions but not concrete I/O.
 
 Example responsibilities:
 
-- Fetch article metadata through an article source port
+- Fetch article metadata through an article fetcher port
 - Save or load articles through repository ports
-- Analyze articles through an analyzer port
+- Analyze articles through a news analyzer port
 - Render HTML through a renderer port
-- Store generated HTML through a digest store port
-- Delete old HTML through a digest store port
+- Store generated HTML through a file storage port
+- Delete old HTML through a file storage port
 
 ## Ports
 
-Usecase ports define interfaces for adapters.
+Adapter ports define interfaces for usecases and concrete adapters.
 
 Expected ports:
 
-- `ArticleSourcePort`
+- `ArticleFetcherPort`
 - `ArticleRepositoryPort`
-- `AnalyzerPort`
+- `TopicRepositoryPort`
+- `DigestRepositoryPort`
+- `NewsAnalyzerPort`
 - `DigestRendererPort`
-- `DigestStorePort`
 - `ClockPort`
-- `ConfigPort`
+- `FileStoragePort`
 
-The analyzer port must support both Dummy Analyzer and local LLM analyzer
+The news analyzer port must support both Dummy Analyzer and local LLM analyzer
 implementations.
 
 ## Adapters
@@ -217,7 +218,7 @@ The Local LLM Analyzer should:
 
 - Be the preferred real analyzer path
 - Be optional during development
-- Stay behind `AnalyzerPort`
+- Stay behind `NewsAnalyzerPort`
 - Avoid leaking local runtime details into usecases
 - Support policy prompts that prohibit stock predictions and investment advice
 
