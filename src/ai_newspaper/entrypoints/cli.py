@@ -12,12 +12,13 @@ from ai_newspaper.infrastructure.config import default_paths
 from ai_newspaper.infrastructure.persistence import (
     SqliteArticleRepository,
     SqliteDigestRepository,
+    SqliteTopicRepository,
 )
 from ai_newspaper.usecases.analyze_articles import AnalyzeArticles
 from ai_newspaper.usecases.fetch_articles import FetchArticles
 from ai_newspaper.usecases.prune_digests import PruneDigests
 from ai_newspaper.usecases.render_digest import RenderDigest
-from ai_newspaper.usecases.run_pipeline import RunPipeline
+from ai_newspaper.usecases.run_pipeline import RunDigestPipelineUseCase
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -59,6 +60,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             "Pipeline completed: "
             f"fetched={result.fetched_count}, "
+            f"saved={result.saved_count}, "
+            f"normalized={result.normalized_count}, "
+            f"topics={result.topic_count}, "
+            f"classified={result.classified_topic_count}, "
             f"analyzed={result.analyzed_count}, "
             f"digest={result.digest_path}, "
             f"pruned={result.pruned_count}"
@@ -73,6 +78,9 @@ class _Application:
     def __init__(self) -> None:
         paths = default_paths()
         repository = SqliteArticleRepository(
+            paths.database_dir / "ai_newspaper.sqlite3"
+        )
+        topic_repository = SqliteTopicRepository(
             paths.database_dir / "ai_newspaper.sqlite3"
         )
         digest_repository = SqliteDigestRepository(
@@ -101,11 +109,15 @@ class _Application:
             digest_repository=digest_repository,
             clock=clock,
         )
-        self.run_pipeline = RunPipeline(
-            fetch_articles=self.fetch_articles,
-            analyze_articles=self.analyze_articles,
-            render_digest=self.render_digest,
-            prune_digests=self.prune_digests,
+        self.run_pipeline = RunDigestPipelineUseCase(
+            source=source,
+            article_repository=repository,
+            topic_repository=topic_repository,
+            analyzer=analyzer,
+            digest_repository=digest_repository,
+            renderer=renderer,
+            store=store,
+            clock=clock,
         )
 
 

@@ -14,9 +14,8 @@ class PruneDigests:
     clock: ClockPort
 
     def execute(self) -> list[Path]:
-        expires_before = RetentionPolicy(DIGEST_RETENTION).expires_before(
-            self.clock.now()
-        )
+        now = self.clock.now()
+        expires_before = RetentionPolicy(DIGEST_RETENTION).expires_before(now)
         deleted_paths: list[Path] = []
         for digest in self.digest_repository.list_digests():
             if digest.edition.generated_at >= expires_before:
@@ -27,4 +26,8 @@ class PruneDigests:
                 digest.edition.label,
             )
             deleted_paths.append(deleted_path)
+
+        for deleted_path in self.store.prune_older_than(now, DIGEST_RETENTION):
+            if deleted_path not in deleted_paths:
+                deleted_paths.append(deleted_path)
         return deleted_paths

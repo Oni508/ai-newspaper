@@ -189,9 +189,13 @@ uv run ai-newspaper prune
 The `run` command should execute the normal pipeline:
 
 1. Fetch source articles
-2. Analyze articles
-3. Render HTML digest
-4. Prune old generated HTML and digest metadata
+2. Normalize article URLs and remove duplicates
+3. Store normalized articles
+4. Cluster articles into topics
+5. Classify topics into supported categories
+6. Analyze articles
+7. Render HTML digest
+8. Prune old generated HTML and digest metadata
 
 ## Development Requirements
 

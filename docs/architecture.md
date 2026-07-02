@@ -118,7 +118,7 @@ Initial usecases:
 - `AnalyzeArticles`
 - `RenderDigest`
 - `PruneDigests`
-- `RunPipeline`
+- `RunDigestPipelineUseCase`
 
 Usecases should express workflow decisions but not concrete I/O.
 
@@ -207,7 +207,8 @@ Command responsibilities:
 - `analyze`: analyze stored candidate articles
 - `render`: render the current edition to HTML
 - `prune`: delete generated HTML files and digest metadata older than 48 hours
-- `run`: execute fetch, analyze, render, and prune in order
+- `run`: execute fetch, normalize, store, topic clustering, classification,
+  analysis, render, and prune in order
 
 The CLI should assemble concrete adapters and pass them into usecases.
 

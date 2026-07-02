@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from ai_newspaper.domain.models import Digest, DigestEdition
@@ -8,12 +8,18 @@ from ai_newspaper.usecases.prune_digests import PruneDigests
 
 
 class FakeStore:
-    def __init__(self) -> None:
+    def __init__(self, orphaned_deleted_paths: list[Path] | None = None) -> None:
         self.deleted_generated_at: list[datetime] = []
+        self.orphaned_deleted_paths = orphaned_deleted_paths or []
 
     def delete_html(self, generated_at: datetime) -> Path:
         self.deleted_generated_at.append(generated_at)
         return Path(f"data/digests/digest_{generated_at:%Y-%m-%d_%H%M}.html")
+
+    def prune_older_than(self, now: datetime, retention: timedelta) -> list[Path]:
+        assert now == datetime(2026, 7, 2, 18, 0)
+        assert retention == timedelta(hours=48)
+        return self.orphaned_deleted_paths
 
 
 class FakeDigestRepository:
@@ -53,6 +59,18 @@ def test_prune_digests_deletes_html_and_metadata_older_than_48_hours() -> None:
     assert digest_repository.deleted == [
         (old_digest.edition.generated_at, old_digest.edition.label)
     ]
+
+
+def test_prune_digests_deletes_orphaned_old_html_files() -> None:
+    store = FakeStore([Path("data/digests/orphaned.html")])
+
+    deleted = PruneDigests(
+        store=store,
+        digest_repository=FakeDigestRepository([]),
+        clock=FakeClock(),
+    ).execute()
+
+    assert deleted == [Path("data/digests/orphaned.html")]
 
 
 def _digest(generated_at: datetime, label: str) -> Digest:
