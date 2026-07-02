@@ -72,7 +72,7 @@ src/ai_newspaper/
 templates/
   digest.html.j2
 config/
-  feeds.yaml
+  sources.yaml
 data/
   digests/
 tests/

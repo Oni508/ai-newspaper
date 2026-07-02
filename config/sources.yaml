@@ -1,0 +1,24 @@
+sources:
+  - name: BBC World
+    type: rss
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
+    enabled: true
+    category: international_affairs
+
+  - name: BBC Business
+    type: rss
+    url: https://feeds.bbci.co.uk/news/business/rss.xml
+    enabled: true
+    category: business_technology
+
+  - name: NPR Politics
+    type: rss
+    url: https://feeds.npr.org/1014/rss.xml
+    enabled: true
+    category: politics_economy
+
+  - name: TechCrunch
+    type: rss
+    url: https://techcrunch.com/feed/
+    enabled: true
+    category: business_technology
