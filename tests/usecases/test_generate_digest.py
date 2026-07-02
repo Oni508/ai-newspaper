@@ -55,6 +55,20 @@ class FakeStore:
         return Path("data/digests/digest_2026-07-02_0800.html")
 
 
+class FakeDigestRepository:
+    def __init__(self) -> None:
+        self.saved_digest: Digest | None = None
+
+    def save_digest(self, digest: Digest) -> None:
+        self.saved_digest = digest
+
+    def list_digests(self) -> list[Digest]:
+        raise NotImplementedError
+
+    def delete_digest(self, generated_at: datetime, label: str) -> None:
+        raise NotImplementedError
+
+
 class FakeClock:
     def now(self) -> datetime:
         return datetime(2026, 7, 2, 8, 0)
@@ -63,9 +77,11 @@ class FakeClock:
 def test_generate_digest_renders_and_stores_current_digest() -> None:
     renderer = FakeRenderer()
     store = FakeStore()
+    digest_repository = FakeDigestRepository()
 
     output_path = GenerateDigest(
         repository=FakeRepository(),
+        digest_repository=digest_repository,
         renderer=renderer,
         store=store,
         clock=FakeClock(),
@@ -78,3 +94,4 @@ def test_generate_digest_renders_and_stores_current_digest() -> None:
     assert renderer.digest.edition.label == "朝刊"
     assert len(renderer.digest.articles) == 1
     assert len(renderer.digest.analyses) == 1
+    assert digest_repository.saved_digest == renderer.digest

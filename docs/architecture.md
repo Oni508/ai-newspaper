@@ -206,7 +206,7 @@ Command responsibilities:
 - `fetch`: fetch and store candidate articles
 - `analyze`: analyze stored candidate articles
 - `render`: render the current edition to HTML
-- `prune`: delete generated HTML files older than 48 hours
+- `prune`: delete generated HTML files and digest metadata older than 48 hours
 - `run`: execute fetch, analyze, render, and prune in order
 
 The CLI should assemble concrete adapters and pass them into usecases.
@@ -288,7 +288,8 @@ implement adapter ports without exposing SQL details to usecases.
 ## Pruning
 
 The prune workflow deletes generated HTML files older than 48 hours from
-`data/digests/`.
+`data/digests/` and deletes the matching rows from the `digests` table.
+It does not delete `articles`, `topics`, or `analyses` in the first version.
 
 The retention rule is a business policy, but filesystem deletion is an adapter
 responsibility.
@@ -296,7 +297,8 @@ responsibility.
 Recommended split:
 
 - Domain or usecase decides the cutoff duration
-- Digest store adapter lists and deletes matching files
+- Digest repository lists and deletes matching digest metadata
+- Digest store adapter deletes matching files
 
 ## Scheduling
 

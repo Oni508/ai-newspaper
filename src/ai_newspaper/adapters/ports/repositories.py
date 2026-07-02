@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 
 from ai_newspaper.domain.models import AnalysisResult, Article, Digest, Topic
@@ -33,3 +34,6 @@ class DigestRepositoryPort(Protocol):
 
     def list_digests(self) -> list[Digest]:
         """List stored digests."""
+
+    def delete_digest(self, generated_at: datetime, label: str) -> None:
+        """Delete one digest metadata row."""

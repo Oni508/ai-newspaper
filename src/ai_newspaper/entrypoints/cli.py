@@ -9,7 +9,10 @@ from ai_newspaper.adapters.sources.rss_feed_source import RssFeedSource
 from ai_newspaper.adapters.storage.filesystem_digest_store import FilesystemDigestStore
 from ai_newspaper.infrastructure.clock import SystemClock
 from ai_newspaper.infrastructure.config import default_paths
-from ai_newspaper.infrastructure.persistence import SqliteArticleRepository
+from ai_newspaper.infrastructure.persistence import (
+    SqliteArticleRepository,
+    SqliteDigestRepository,
+)
 from ai_newspaper.usecases.analyze_articles import AnalyzeArticles
 from ai_newspaper.usecases.fetch_articles import FetchArticles
 from ai_newspaper.usecases.prune_digests import PruneDigests
@@ -72,6 +75,9 @@ class _Application:
         repository = SqliteArticleRepository(
             paths.database_dir / "ai_newspaper.sqlite3"
         )
+        digest_repository = SqliteDigestRepository(
+            paths.database_dir / "ai_newspaper.sqlite3"
+        )
         source = RssFeedSource()
         analyzer = DummyAnalyzer()
         renderer = JinjaHtmlRenderer(paths.template_dir)
@@ -85,11 +91,16 @@ class _Application:
         )
         self.render_digest = RenderDigest(
             repository=repository,
+            digest_repository=digest_repository,
             renderer=renderer,
             store=store,
             clock=clock,
         )
-        self.prune_digests = PruneDigests(store=store, clock=clock)
+        self.prune_digests = PruneDigests(
+            store=store,
+            digest_repository=digest_repository,
+            clock=clock,
+        )
         self.run_pipeline = RunPipeline(
             fetch_articles=self.fetch_articles,
             analyze_articles=self.analyze_articles,

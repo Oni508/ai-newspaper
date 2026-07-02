@@ -99,6 +99,39 @@ def test_digest_repository_persists_digest_metadata_and_references(
     assert repository.list_digests() == [digest]
 
 
+def test_digest_repository_deletes_only_digest_metadata(tmp_path: Path) -> None:
+    database_path = tmp_path / "news.db"
+    article_repository = SqliteArticleRepository(database_path)
+    topic_repository = SqliteTopicRepository(database_path)
+    digest_repository = SqliteDigestRepository(database_path)
+    article = _article()
+    analysis = _analysis(article.url)
+    topic = Topic(
+        name="AI product strategy",
+        category=Category.BUSINESS_TECHNOLOGY,
+        importance=Importance.HIGH,
+    )
+    digest = Digest(
+        edition=DigestEdition(
+            generated_at=datetime(2026, 6, 30, 8, 0),
+            label="morning",
+        ),
+        articles=(article,),
+        analyses=(analysis,),
+    )
+    article_repository.save_articles([article])
+    article_repository.save_analyses([analysis])
+    topic_repository.save_topic_articles(topic, [article])
+    digest_repository.save_digest(digest)
+
+    digest_repository.delete_digest(digest.edition.generated_at, digest.edition.label)
+
+    assert digest_repository.list_digests() == []
+    assert article_repository.list_articles() == [article]
+    assert article_repository.list_analyses() == [analysis]
+    assert topic_repository.list_topics() == [topic]
+
+
 def test_usecases_do_not_import_sqlite() -> None:
     for path in Path("src/ai_newspaper/usecases").glob("*.py"):
         assert "sqlite" not in path.read_text()

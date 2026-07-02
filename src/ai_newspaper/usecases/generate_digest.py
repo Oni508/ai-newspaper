@@ -7,6 +7,7 @@ from ai_newspaper.adapters.ports import (
     ArticleRepositoryPort,
     ClockPort,
     DigestRendererPort,
+    DigestRepositoryPort,
     FileStoragePort,
 )
 from ai_newspaper.domain.models import Digest, DigestEdition
@@ -15,6 +16,7 @@ from ai_newspaper.domain.models import Digest, DigestEdition
 @dataclass(frozen=True)
 class GenerateDigest:
     repository: ArticleRepositoryPort
+    digest_repository: DigestRepositoryPort
     renderer: DigestRendererPort
     store: FileStoragePort
     clock: ClockPort
@@ -30,7 +32,9 @@ class GenerateDigest:
             analyses=tuple(self.repository.list_analyses()),
         )
         html = self.renderer.render(digest)
-        return self.store.write_html(generated_at, html)
+        output_path = self.store.write_html(generated_at, html)
+        self.digest_repository.save_digest(digest)
+        return output_path
 
 
 def _edition_label(hour: int) -> str:

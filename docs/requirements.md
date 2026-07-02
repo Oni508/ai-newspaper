@@ -25,8 +25,9 @@ The generated HTML files are stored in:
 data/digests/
 ```
 
-Generated HTML files older than 48 hours must be deleted by the pruning
-workflow.
+Generated HTML files older than 48 hours and their digest metadata must be
+deleted by the pruning workflow. The first version keeps article, topic, and
+analysis records.
 
 ## Target User
 
@@ -190,7 +191,7 @@ The `run` command should execute the normal pipeline:
 1. Fetch source articles
 2. Analyze articles
 3. Render HTML digest
-4. Prune old generated HTML
+4. Prune old generated HTML and digest metadata
 
 ## Development Requirements
 

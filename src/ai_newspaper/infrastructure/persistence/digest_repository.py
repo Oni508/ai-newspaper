@@ -93,6 +93,18 @@ class SqliteDigestRepository(DigestRepositoryPort):
             )
         return digests
 
+    def delete_digest(self, generated_at: datetime, label: str) -> None:
+        with open_connection(self._database_path) as connection:
+            initialize_database(connection)
+            connection.execute(
+                """
+                DELETE FROM digests
+                WHERE generated_at = ? AND label = ?
+                """,
+                (generated_at.isoformat(), label),
+            )
+            connection.commit()
+
 
 def _load_string_list(payload: str) -> list[str]:
     data = json.loads(payload)
