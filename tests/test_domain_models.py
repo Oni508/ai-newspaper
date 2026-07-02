@@ -13,6 +13,7 @@ from ai_newspaper.domain.models import (
     DigestEdition,
     Importance,
     Topic,
+    category_from_value,
 )
 
 
@@ -49,6 +50,12 @@ def test_topic_requires_non_empty_name() -> None:
 
     with pytest.raises(ValueError, match="topic name"):
         Topic(name="   ", category=Category.BUSINESS_TECHNOLOGY)
+
+
+def test_category_from_value_accepts_current_and_legacy_international_values() -> None:
+    assert category_from_value("international") == Category.INTERNATIONAL
+    assert category_from_value("international_affairs") == Category.INTERNATIONAL
+    assert Category.INTERNATIONAL.value == "international"
 
 
 def test_digest_groups_articles_and_analyses() -> None:

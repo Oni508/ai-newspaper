@@ -49,6 +49,12 @@ The first version supports only:
 - Business and technology
 - International affairs
 
+Internal category identifiers are:
+
+- `politics_economy`
+- `business_technology`
+- `international`
+
 The first version should not prioritize:
 
 - Entertainment
@@ -150,6 +156,7 @@ SQLite may store:
 
 - Feed source metadata
 - Fetched article metadata
+- Normalized article URLs and discovered topic metadata
 - Article analysis results
 - Digest generation history
 

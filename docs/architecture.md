@@ -112,6 +112,9 @@ Usecases coordinate application behavior through ports.
 Initial usecases:
 
 - `FetchArticles`
+- `NormalizeArticlesUseCase`
+- `ClusterTopicsUseCase`
+- `ClassifyTopicsUseCase`
 - `AnalyzeArticles`
 - `RenderDigest`
 - `PruneDigests`
@@ -122,6 +125,12 @@ Usecases should express workflow decisions but not concrete I/O.
 Example responsibilities:
 
 - Fetch article metadata through an article fetcher port
+- Normalize article URLs and remove duplicate fetched articles
+- Cluster articles by title similarity and publication-time proximity without a
+  vector database
+- Classify discovered topics into `politics_economy`,
+  `business_technology`, or `international`, including forecast eligibility and
+  business-explainer eligibility flags
 - Save or load articles through repository ports
 - Analyze articles through a news analyzer port
 - Render HTML through a renderer port

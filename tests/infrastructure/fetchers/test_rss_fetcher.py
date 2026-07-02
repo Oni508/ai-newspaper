@@ -32,7 +32,7 @@ sources:
     type: newsapi
     url: https://api.example.com/news
     enabled: true
-    category: international_affairs
+    category: international
 """,
         encoding="utf-8",
     )
@@ -76,7 +76,7 @@ sources:
     type: rss
     url: https://example.com/rss
     enabled: true
-    category: international_affairs
+    category: international
 """,
         encoding="utf-8",
     )

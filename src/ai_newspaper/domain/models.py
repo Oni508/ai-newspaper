@@ -8,7 +8,8 @@ from enum import StrEnum
 class Category(StrEnum):
     POLITICS_ECONOMY = "politics_economy"
     BUSINESS_TECHNOLOGY = "business_technology"
-    INTERNATIONAL_AFFAIRS = "international_affairs"
+    INTERNATIONAL = "international"
+    INTERNATIONAL_AFFAIRS = "international"
 
 
 class Importance(StrEnum):
@@ -37,6 +38,26 @@ class Topic:
 
 
 @dataclass(frozen=True)
+class TopicCluster:
+    name: str
+    articles: tuple[Article, ...]
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("topic cluster name must not be empty")
+        if not self.articles:
+            raise ValueError("topic cluster must contain at least one article")
+
+
+@dataclass(frozen=True)
+class ClassifiedTopic:
+    topic: Topic
+    articles: tuple[Article, ...]
+    forecast_allowed: bool
+    business_explainer_required: bool
+
+
+@dataclass(frozen=True)
 class AnalysisResult:
     article_url: str
     summary: str
@@ -61,6 +82,13 @@ class Article:
     category: Category
     published_at: datetime | None = None
     summary: str = ""
+
+
+def category_from_value(value: object) -> Category:
+    normalized = str(value).strip().lower()
+    if normalized == "international_affairs":
+        return Category.INTERNATIONAL
+    return Category(normalized)
 
 
 @dataclass(frozen=True)

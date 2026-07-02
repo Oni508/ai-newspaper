@@ -4,7 +4,12 @@ import sqlite3
 from datetime import datetime
 
 from ai_newspaper.adapters.ports import TopicRepositoryPort
-from ai_newspaper.domain.models import Article, Category, Importance, Topic
+from ai_newspaper.domain.models import (
+    Article,
+    Importance,
+    Topic,
+    category_from_value,
+)
 from ai_newspaper.infrastructure.persistence.article_repository import (
     SqliteArticleRepository,
 )
@@ -48,7 +53,7 @@ class SqliteTopicRepository(TopicRepositoryPort):
         return [
             Topic(
                 name=str(row["name"]),
-                category=Category(str(row["category"])),
+                category=category_from_value(row["category"]),
                 importance=Importance(str(row["importance"])),
             )
             for row in rows
@@ -98,7 +103,7 @@ class SqliteTopicRepository(TopicRepositoryPort):
                 title=str(row["title"]),
                 url=str(row["url"]),
                 source_name=str(row["source_name"]),
-                category=Category(str(row["category"])),
+                category=category_from_value(row["category"]),
                 published_at=(
                     None
                     if row["published_at"] is None

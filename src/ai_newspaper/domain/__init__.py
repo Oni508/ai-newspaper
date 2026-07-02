@@ -5,10 +5,13 @@ from ai_newspaper.domain.models import (
     Article,
     ArticleSource,
     Category,
+    ClassifiedTopic,
     Digest,
     DigestEdition,
     Importance,
     Topic,
+    TopicCluster,
+    category_from_value,
 )
 from ai_newspaper.domain.policies import (
     DIGEST_RETENTION,
@@ -24,6 +27,7 @@ __all__ = [
     "Article",
     "ArticleSource",
     "Category",
+    "ClassifiedTopic",
     "DIGEST_RETENTION",
     "Digest",
     "DigestEdition",
@@ -33,5 +37,7 @@ __all__ = [
     "RetentionPolicy",
     "SUPPORTED_CATEGORIES",
     "Topic",
+    "TopicCluster",
+    "category_from_value",
     "is_supported_category",
 ]

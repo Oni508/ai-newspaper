@@ -11,7 +11,7 @@ SUPPORTED_CATEGORIES: frozenset[Category] = frozenset(
     {
         Category.POLITICS_ECONOMY,
         Category.BUSINESS_TECHNOLOGY,
-        Category.INTERNATIONAL_AFFAIRS,
+        Category.INTERNATIONAL,
     }
 )
 

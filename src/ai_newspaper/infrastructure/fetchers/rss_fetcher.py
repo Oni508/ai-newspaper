@@ -10,7 +10,7 @@ from urllib.parse import urldefrag, urlsplit, urlunsplit
 import feedparser  # type: ignore[import-untyped]
 import yaml  # type: ignore[import-untyped]
 
-from ai_newspaper.domain.models import Article, Category
+from ai_newspaper.domain.models import Article, Category, category_from_value
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,7 @@ def _article_from_entry(entry: Any, source: RssSource) -> Article | None:
 
 def _category_from_config(value: object) -> Category | None:
     try:
-        return Category(str(value))
+        return category_from_value(value)
     except ValueError:
         return None
 

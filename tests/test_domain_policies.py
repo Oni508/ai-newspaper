@@ -16,7 +16,7 @@ from ai_newspaper.domain.policies import (
 def test_supported_categories_include_first_version_scope() -> None:
     assert is_supported_category(Category.POLITICS_ECONOMY)
     assert is_supported_category(Category.BUSINESS_TECHNOLOGY)
-    assert is_supported_category(Category.INTERNATIONAL_AFFAIRS)
+    assert is_supported_category(Category.INTERNATIONAL)
 
 
 def test_forecast_policy_allows_conditional_supported_forecast() -> None:

@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 
 from ai_newspaper.adapters.ports import ArticleRepositoryPort
-from ai_newspaper.domain.models import AnalysisResult, Article, Category
+from ai_newspaper.domain.models import AnalysisResult, Article, category_from_value
 from ai_newspaper.infrastructure.persistence.schema import initialize_database
 from ai_newspaper.infrastructure.persistence.sqlite import DatabasePath, open_connection
 
@@ -130,7 +130,7 @@ def _article_from_row(row: sqlite3.Row) -> Article:
         title=str(row["title"]),
         url=str(row["url"]),
         source_name=str(row["source_name"]),
-        category=Category(str(row["category"])),
+        category=category_from_value(row["category"]),
         published_at=_text_to_datetime(row["published_at"]),
         summary=str(row["summary"]),
     )

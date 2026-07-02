@@ -3,7 +3,7 @@ sources:
     type: rss
     url: https://feeds.bbci.co.uk/news/world/rss.xml
     enabled: true
-    category: international_affairs
+    category: international
 
   - name: BBC Business
     type: rss
