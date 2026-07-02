@@ -2,26 +2,278 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8">
-    <title>AI Newspaper - {{ digest.edition.generated_at.strftime("%Y-%m-%d %H:%M") }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Newspaper - {{ view.generated_at.strftime("%Y-%m-%d %H:%M") }}</title>
+    <style>
+      :root {
+        color: #222;
+        background: #f7f7f4;
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans",
+          "Yu Gothic", "Noto Sans JP", sans-serif;
+        line-height: 1.75;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      a {
+        color: #1b5f8c;
+      }
+
+      .page {
+        box-sizing: border-box;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 24px 56px;
+      }
+
+      .masthead {
+        border-bottom: 3px solid #222;
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+      }
+
+      .masthead h1 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 2.4rem;
+        letter-spacing: 0;
+      }
+
+      .metadata {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        margin: 8px 0 0;
+        color: #565656;
+        font-size: 0.95rem;
+      }
+
+      .section {
+        margin-top: 34px;
+      }
+
+      .section h2 {
+        border-bottom: 1px solid #c9c4b8;
+        margin: 0 0 16px;
+        padding-bottom: 6px;
+        font-size: 1.35rem;
+      }
+
+      .lead-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .article {
+        border-bottom: 1px solid #ded9cf;
+        padding: 18px 0;
+      }
+
+      .lead-grid .article {
+        border: 1px solid #ded9cf;
+        border-radius: 8px;
+        background: #fffefa;
+        padding: 16px;
+      }
+
+      .article h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+        line-height: 1.45;
+      }
+
+      .article-meta {
+        margin: 0 0 10px;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .article p {
+        margin: 8px 0;
+      }
+
+      .details {
+        margin-top: 10px;
+      }
+
+      .details h4 {
+        margin: 14px 0 4px;
+        font-size: 0.95rem;
+      }
+
+      .details ul,
+      .reference-list {
+        margin: 6px 0 0;
+        padding-left: 1.3rem;
+      }
+
+      .empty {
+        color: #666;
+        margin: 10px 0 0;
+      }
+
+      .reference-list li {
+        margin: 8px 0;
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 28px 16px 44px;
+        }
+
+        .masthead h1 {
+          font-size: 2rem;
+        }
+      }
+    </style>
   </head>
   <body>
-    <header>
-      <h1>AI Newspaper</h1>
-      <p>{{ digest.edition.label }}</p>
-      <p>{{ digest.edition.generated_at.strftime("%Y-%m-%d %H:%M") }}</p>
-    </header>
-    <main>
-      {% if digest.articles %}
-        {% for article in digest.articles %}
-          <article>
-            <h2>{{ article.title }}</h2>
-            <p>{{ article.source_name }} / {{ article.category.value }}</p>
-            <p><a href="{{ article.url }}">{{ article.url }}</a></p>
-          </article>
+    <div class="page">
+      <header class="masthead">
+        <h1>AI Newspaper</h1>
+        <p class="metadata">
+          <span>{{ view.label }}</span>
+          <span>{{ view.generated_at.strftime("%Y-%m-%d %H:%M") }}</span>
+        </p>
+      </header>
+
+      <main>
+        <section class="section" aria-labelledby="front-page-summary">
+          <h2 id="front-page-summary">1面サマリー</h2>
+          {% if view.top_items %}
+            <div class="lead-grid">
+              {% for item in view.top_items %}
+                <article class="article">
+                  <h3>{{ item.title }}</h3>
+                  <p class="article-meta">{{ item.source_name }} / {{ item.category_label }}</p>
+                  {% if item.analysis_summary %}
+                    {% for paragraph in item.analysis_summary %}
+                      <p>{{ paragraph }}</p>
+                    {% endfor %}
+                  {% elif item.source_summary %}
+                    <p>{{ item.source_summary }}</p>
+                  {% else %}
+                    <p>要約はまだありません。</p>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="empty">表示できる記事はまだありません。</p>
+          {% endif %}
+        </section>
+
+        {% for section in view.sections %}
+          <section class="section" aria-labelledby="section-{{ loop.index }}">
+            <h2 id="section-{{ loop.index }}">{{ section.title }}</h2>
+            {% if section.articles %}
+              {% for item in section.articles %}
+                <article class="article">
+                  <h3><a href="{{ item.url }}">{{ item.title }}</a></h3>
+                  <p class="article-meta">
+                    {{ item.source_name }}
+                    {% if item.published_at %}
+                      / {{ item.published_at.strftime("%Y-%m-%d %H:%M") }}
+                    {% endif %}
+                  </p>
+                  {% if item.analysis_summary %}
+                    {% for paragraph in item.analysis_summary %}
+                      <p>{{ paragraph }}</p>
+                    {% endfor %}
+                  {% elif item.source_summary %}
+                    <p>{{ item.source_summary }}</p>
+                  {% else %}
+                    <p>要約はまだありません。</p>
+                  {% endif %}
+
+                  {% if item.background or item.uncertainty %}
+                    <div class="details">
+                      {% if item.background %}
+                        <h4>背景</h4>
+                        {% for paragraph in item.background %}
+                          <p>{{ paragraph }}</p>
+                        {% endfor %}
+                      {% endif %}
+                      {% if item.uncertainty %}
+                        <h4>不確実な点</h4>
+                        {% for paragraph in item.uncertainty %}
+                          <p>{{ paragraph }}</p>
+                        {% endfor %}
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            {% else %}
+              <p class="empty">このセクションの記事はまだありません。</p>
+            {% endif %}
+          </section>
         {% endfor %}
-      {% else %}
-        <p>No articles have been fetched yet.</p>
-      {% endif %}
-    </main>
+
+        <section class="section" aria-labelledby="business-explainer">
+          <h2 id="business-explainer">企業理解補助</h2>
+          {% if view.business_items %}
+            {% for item in view.business_items %}
+              <article class="article">
+                <h3><a href="{{ item.url }}">{{ item.title }}</a></h3>
+                {% for paragraph in item.business_explainer %}
+                  <p>{{ paragraph }}</p>
+                {% endfor %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="empty">企業理解補助はまだありません。</p>
+          {% endif %}
+        </section>
+
+        <section class="section" aria-labelledby="watch-points">
+          <h2 id="watch-points">今後の注視点</h2>
+          {% if view.watch_items %}
+            {% for item in view.watch_items %}
+              <article class="article">
+                <h3><a href="{{ item.url }}">{{ item.title }}</a></h3>
+                {% if item.conditional_scenarios %}
+                  <h4>条件付きシナリオ</h4>
+                  <ul>
+                    {% for scenario in item.conditional_scenarios %}
+                      <li>{{ scenario }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+                {% if item.next_checks %}
+                  <h4>次に確認すること</h4>
+                  <ul>
+                    {% for check in item.next_checks %}
+                      <li>{{ check }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="empty">今後の注視点はまだありません。</p>
+          {% endif %}
+        </section>
+
+        <section class="section" aria-labelledby="references">
+          <h2 id="references">参照ソース一覧</h2>
+          {% if view.references %}
+            <ol class="reference-list">
+              {% for item in view.references %}
+                <li>
+                  {{ item.source_name }}:
+                  <a href="{{ item.url }}">{{ item.title }}</a>
+                </li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <p class="empty">参照ソースはまだありません。</p>
+          {% endif %}
+        </section>
+      </main>
+    </div>
   </body>
 </html>

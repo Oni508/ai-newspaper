@@ -1,30 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
-
-from ai_newspaper.adapters.ports import (
-    ArticleRepositoryPort,
-    ClockPort,
-    DigestRendererPort,
-    FileStoragePort,
-)
-from ai_newspaper.domain.models import Digest, DigestEdition
+from ai_newspaper.usecases.generate_digest import GenerateDigest
 
 
-@dataclass(frozen=True)
-class RenderDigest:
-    repository: ArticleRepositoryPort
-    renderer: DigestRendererPort
-    store: FileStoragePort
-    clock: ClockPort
-
-    def execute(self) -> Path:
-        generated_at = self.clock.now()
-        digest = Digest(
-            edition=DigestEdition(generated_at=generated_at, label="stub edition"),
-            articles=tuple(self.repository.list_articles()),
-            analyses=tuple(self.repository.list_analyses()),
-        )
-        html = self.renderer.render(digest)
-        return self.store.write_html(generated_at, html)
+class RenderDigest(GenerateDigest):
+    """Backward-compatible name used by the existing render command."""

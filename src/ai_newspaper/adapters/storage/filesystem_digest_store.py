@@ -10,7 +10,7 @@ class FilesystemDigestStore:
 
     def write_html(self, generated_at: datetime, html: str) -> Path:
         self._digest_dir.mkdir(parents=True, exist_ok=True)
-        output_path = self._digest_dir / f"{generated_at:%Y-%m-%d_%H%M}.html"
+        output_path = self._digest_dir / f"digest_{generated_at:%Y-%m-%d_%H%M}.html"
         output_path.write_text(html, encoding="utf-8")
         return output_path
 
