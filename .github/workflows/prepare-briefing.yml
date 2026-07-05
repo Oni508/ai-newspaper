@@ -1,0 +1,21 @@
+name: Prepare briefing input
+
+on:
+  schedule:
+    - cron: "0 23 * * *"
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: briefing-input-placeholder
+          path: .
+          retention-days: 2
