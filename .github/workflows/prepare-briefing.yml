@@ -1,21 +1,56 @@
-name: Prepare briefing input
+name: Prepare ChatGPT briefing
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 23 * * *"
     - cron: "0 9 * * *"
-  workflow_dispatch:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/upload-artifact@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: briefing-input-placeholder
-          path: .
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Fetch articles
+        run: uv run ai-newspaper fetch
+
+      - name: Build briefing package
+        id: briefing
+        run: |
+          uv run python scripts/build_briefing_package.py | tee briefing_metadata.txt
+          edition_id="$(sed -n 's/^edition_id=//p' briefing_metadata.txt)"
+          output_dir="$(sed -n 's/^output_dir=//p' briefing_metadata.txt)"
+          echo "edition_id=${edition_id}" >> "${GITHUB_OUTPUT}"
+          echo "output_dir=${output_dir}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload briefing package
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefing-inputs-${{ steps.briefing.outputs.edition_id }}
+          path: ${{ steps.briefing.outputs.output_dir }}
           retention-days: 2
+
+      - name: Create ChatGPT input issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "[AI Newspaper Input] ${{ steps.briefing.outputs.edition_id }}" \
+            --body-file "${{ steps.briefing.outputs.output_dir }}/issue_body.md"

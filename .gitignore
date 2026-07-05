@@ -10,3 +10,5 @@ data/digests/*
 !data/digests/.gitkeep
 data/logs/*
 !data/logs/.gitkeep
+
+artifacts/
