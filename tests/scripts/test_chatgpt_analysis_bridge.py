@@ -95,6 +95,27 @@ def test_build_briefing_package_creates_expected_files(
     database = tmp_path / "ai_newspaper.sqlite3"
     _seed_database(database)
     output_root = tmp_path / "briefing_inputs"
+    sources_path = tmp_path / "sources.yaml"
+    sources_path.write_text(
+        """
+sources:
+  - name: Example News
+    type: rss
+    url: https://example.com/rss
+    enabled: true
+    category: business_technology
+    region: jp
+    priority: 5
+  - name: Global News
+    type: rss
+    url: https://global.example.com/rss
+    enabled: true
+    category: business_technology
+    region: global
+    priority: 1
+""",
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(
         sys,
@@ -107,6 +128,8 @@ def test_build_briefing_package_creates_expected_files(
             "schemas/chatgpt_analysis.schema.json",
             "--output-root",
             str(output_root),
+            "--sources",
+            str(sources_path),
             "--edition-id",
             "20260705-0800-jst",
         ],
@@ -121,9 +144,13 @@ def test_build_briefing_package_creates_expected_files(
     assert (output_dir / "issue_body.md").is_file()
     payload = json.loads((output_dir / "news_payload.json").read_text())
     assert payload["articles"][0]["source_ref"] == "A001"
+    assert payload["articles"][0]["source_region"] == "jp"
+    assert payload["articles"][0]["source_priority"] == 5
     assert payload["sources"][0] == {
         "source_ref": "A001",
         "source_name": "Example News",
+        "source_region": "jp",
+        "source_priority": 5,
         "title": "AI chip policy update",
         "url": "https://example.com/ai-chip-policy",
     }
@@ -179,6 +206,8 @@ def _valid_news_payload() -> dict[str, object]:
             {
                 "source_ref": "A001",
                 "source_name": "Example News",
+                "source_region": "jp",
+                "source_priority": 5,
                 "title": "AI chip policy update",
                 "url": "https://example.com/ai-chip-policy",
             }
@@ -189,12 +218,14 @@ def _valid_news_payload() -> dict[str, object]:
                 "title": "AI chip policy update",
                 "url": "https://example.com/ai-chip-policy",
                 "source_name": "Example News",
+                "source_region": "jp",
+                "source_priority": 5,
                 "category": "business_technology",
                 "published_at": "2026-07-05T08:00:00",
                 "summary": "Policy and semiconductor supply chain context.",
                 "topic_name": "AI chip policy update",
                 "topic_importance": "high",
-                "importance_score": 91,
+                "importance_score": 144,
             }
         ],
     }
@@ -254,6 +285,27 @@ def _seed_database(database: Path) -> None:
         )
         connection.execute(
             """
+            INSERT INTO articles (
+                url,
+                title,
+                source_name,
+                category,
+                published_at,
+                summary
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "https://global.example.com/revenue-update",
+                "Revenue update",
+                "Global News",
+                "business_technology",
+                datetime(2026, 7, 5, 9, 0).isoformat(),
+                "Revenue and supply chain context.",
+            ),
+        )
+        connection.execute(
+            """
             INSERT INTO topics (name, category, importance)
             VALUES (?, ?, ?)
             """,
@@ -265,4 +317,11 @@ def _seed_database(database: Path) -> None:
             VALUES (1, ?)
             """,
             ("https://example.com/ai-chip-policy",),
+        )
+        connection.execute(
+            """
+            INSERT INTO topic_articles (topic_id, article_url)
+            VALUES (1, ?)
+            """,
+            ("https://global.example.com/revenue-update",),
         )

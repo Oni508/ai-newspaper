@@ -23,6 +23,8 @@ sources:
     url: https://example.com/rss
     enabled: true
     category: business_technology
+    region: jp
+    priority: 5
   - name: Disabled Feed
     type: rss
     url: https://disabled.example.com/rss
@@ -62,6 +64,35 @@ sources:
     assert articles[0].source_name == "Enabled Feed"
     assert articles[0].category == Category.BUSINESS_TECHNOLOGY
     assert articles[0].summary == "Product summary"
+
+
+def test_load_sources_reads_region_and_priority(tmp_path: Path) -> None:
+    sources_path = tmp_path / "sources.yaml"
+    sources_path.write_text(
+        """
+sources:
+  - name: Domestic Feed
+    type: rss
+    url: https://example.com/rss
+    enabled: true
+    category: politics_economy
+    region: jp
+    priority: 6
+  - name: Legacy Feed
+    type: rss
+    url: https://legacy.example.com/rss
+    enabled: true
+    category: international
+""",
+        encoding="utf-8",
+    )
+
+    sources = RssFetcher(sources_path)._load_sources()
+
+    assert sources[0].region == "jp"
+    assert sources[0].priority == 6
+    assert sources[1].region == "global"
+    assert sources[1].priority == 1
 
 
 def test_fetch_skips_missing_urls_and_duplicate_urls(

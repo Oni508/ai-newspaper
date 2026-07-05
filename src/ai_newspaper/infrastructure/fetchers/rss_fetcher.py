@@ -19,6 +19,8 @@ class RssSource:
     url: str
     category: Category
     enabled: bool = True
+    region: str = "global"
+    priority: int = 1
 
 
 class RssFetcher:
@@ -95,11 +97,20 @@ def _source_from_config(raw_source: object) -> RssSource | None:
     url = _normalize_url(_clean_text(raw_source.get("url")))
     category = _category_from_config(raw_source.get("category"))
     enabled = _enabled_from_config(raw_source.get("enabled", True))
+    region = _region_from_config(raw_source.get("region"))
+    priority = _priority_from_config(raw_source.get("priority"))
 
     if not name or not _is_http_url(url) or category is None:
         return None
 
-    return RssSource(name=name, url=url, category=category, enabled=enabled)
+    return RssSource(
+        name=name,
+        url=url,
+        category=category,
+        enabled=enabled,
+        region=region,
+        priority=priority,
+    )
 
 
 def _article_from_entry(entry: Any, source: RssSource) -> Article | None:
@@ -133,6 +144,21 @@ def _enabled_from_config(value: object) -> bool:
     if value is None:
         return True
     return str(value).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _region_from_config(value: object) -> str:
+    region = _clean_text(value).lower()
+    if region in {"jp", "global"}:
+        return region
+    return "global"
+
+
+def _priority_from_config(value: object) -> int:
+    try:
+        priority = int(str(value).strip())
+    except (TypeError, ValueError):
+        return 1
+    return max(0, min(priority, 10))
 
 
 def _entry_datetime(entry: Any) -> datetime | None:

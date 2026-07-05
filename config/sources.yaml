@@ -1,24 +1,72 @@
 sources:
+  - name: Yahoo Japan Top
+    type: rss
+    url: https://news.yahoo.co.jp/rss/topics/top-picks.xml
+    enabled: true
+    category: politics_economy
+    region: jp
+    priority: 5
+
+  - name: Yahoo Japan Domestic
+    type: rss
+    url: https://news.yahoo.co.jp/rss/topics/domestic.xml
+    enabled: true
+    category: politics_economy
+    region: jp
+    priority: 5
+
+  - name: Yahoo Japan Business
+    type: rss
+    url: https://news.yahoo.co.jp/rss/topics/business.xml
+    enabled: true
+    category: business_technology
+    region: jp
+    priority: 5
+
+  - name: Yahoo Japan IT
+    type: rss
+    url: https://news.yahoo.co.jp/rss/topics/it.xml
+    enabled: true
+    category: business_technology
+    region: jp
+    priority: 4
+
+  - name: Yahoo Japan World
+    type: rss
+    url: https://news.yahoo.co.jp/rss/topics/world.xml
+    enabled: true
+    category: international
+    region: jp
+    priority: 4
+
   - name: BBC World
     type: rss
     url: https://feeds.bbci.co.uk/news/world/rss.xml
     enabled: true
     category: international
+    region: global
+    priority: 1
 
   - name: BBC Business
     type: rss
     url: https://feeds.bbci.co.uk/news/business/rss.xml
     enabled: true
     category: business_technology
+    region: global
+    priority: 1
 
   - name: NPR Politics
     type: rss
     url: https://feeds.npr.org/1014/rss.xml
     enabled: true
     category: politics_economy
+    region: global
+    priority: 1
 
   - name: TechCrunch
     type: rss
     url: https://techcrunch.com/feed/
     enabled: true
     category: business_technology
+    region: global
+    priority: 1

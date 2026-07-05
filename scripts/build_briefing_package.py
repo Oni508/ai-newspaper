@@ -9,10 +9,13 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import yaml  # type: ignore[import-untyped]
+
 JST = ZoneInfo("Asia/Tokyo")
 DEFAULT_DATABASE = Path("data/db/ai_newspaper.sqlite3")
 DEFAULT_SCHEMA = Path("schemas/chatgpt_analysis.schema.json")
 DEFAULT_OUTPUT_ROOT = Path("artifacts/briefing_inputs")
+DEFAULT_SOURCES = Path("config/sources.yaml")
 MAX_ARTICLES = 15
 IMPORTANCE_WEIGHT = {
     "critical": 100,
@@ -36,7 +39,31 @@ KEYWORD_WEIGHTS = {
     "supply chain": 6,
     "earnings": 5,
     "revenue": 5,
+    "政策": 8,
+    "政府": 8,
+    "日銀": 8,
+    "規制": 8,
+    "物価": 7,
+    "賃上げ": 7,
+    "半導体": 7,
+    "生成ai": 7,
+    "安全保障": 7,
+    "米国": 7,
+    "中国": 7,
+    "eu": 7,
+    "決算": 5,
+    "業績": 5,
+    "提携": 5,
+    "買収": 5,
 }
+JP_REGION_BONUS = 10
+SOURCE_PRIORITY_WEIGHT = 3
+
+
+@dataclass(frozen=True)
+class SourceMetadata:
+    region: str = "global"
+    priority: int = 1
 
 
 @dataclass(frozen=True)
@@ -45,6 +72,8 @@ class BriefingArticle:
     title: str
     url: str
     source_name: str
+    source_region: str
+    source_priority: int
     category: str
     published_at: str | None
     summary: str
@@ -60,6 +89,7 @@ def main() -> int:
     parser.add_argument("--database", type=Path, default=DEFAULT_DATABASE)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
     parser.add_argument("--edition-id")
     parser.add_argument("--limit", type=int, default=MAX_ARTICLES)
     args = parser.parse_args()
@@ -68,7 +98,12 @@ def main() -> int:
     edition_id = args.edition_id or _edition_id(generated_at)
     output_dir = args.output_root / edition_id
 
-    articles = _load_ranked_articles(args.database, limit=args.limit)
+    source_metadata = _load_source_metadata(args.sources)
+    articles = _load_ranked_articles(
+        args.database,
+        limit=args.limit,
+        source_metadata=source_metadata,
+    )
     if not articles:
         parser.error(
             f"no articles found in {args.database}; "
@@ -106,7 +141,12 @@ def main() -> int:
     return 0
 
 
-def _load_ranked_articles(database: Path, *, limit: int) -> list[BriefingArticle]:
+def _load_ranked_articles(
+    database: Path,
+    *,
+    limit: int,
+    source_metadata: dict[str, SourceMetadata],
+) -> list[BriefingArticle]:
     if not database.exists():
         return []
 
@@ -145,24 +185,36 @@ def _load_ranked_articles(database: Path, *, limit: int) -> list[BriefingArticle
     ranked = sorted(
         deduped.values(),
         key=lambda row: (
-            _importance_score(row),
+            _importance_score(row, source_metadata),
             str(row["published_at"] or ""),
             str(row["title"]),
         ),
         reverse=True,
     )
     return [
-        _briefing_article(index=index, row=row)
+        _briefing_article(
+            index=index,
+            row=row,
+            source_metadata=source_metadata,
+        )
         for index, row in enumerate(ranked[: max(limit, 1)], start=1)
     ]
 
 
-def _briefing_article(*, index: int, row: sqlite3.Row) -> BriefingArticle:
+def _briefing_article(
+    *,
+    index: int,
+    row: sqlite3.Row,
+    source_metadata: dict[str, SourceMetadata],
+) -> BriefingArticle:
+    metadata = _metadata_for_row(row, source_metadata)
     return BriefingArticle(
         source_ref=f"A{index:03d}",
         title=str(row["title"]),
         url=str(row["url"]),
         source_name=str(row["source_name"]),
+        source_region=metadata.region,
+        source_priority=metadata.priority,
         category=str(row["category"]),
         published_at=(
             None if row["published_at"] is None else str(row["published_at"])
@@ -174,12 +226,16 @@ def _briefing_article(*, index: int, row: sqlite3.Row) -> BriefingArticle:
         topic_importance=(
             None if row["topic_importance"] is None else str(row["topic_importance"])
         ),
-        importance_score=_importance_score(row),
+        importance_score=_importance_score(row, source_metadata),
     )
 
 
-def _importance_score(row: sqlite3.Row) -> int:
+def _importance_score(
+    row: sqlite3.Row,
+    source_metadata: dict[str, SourceMetadata],
+) -> int:
     score = _topic_weight(row)
+    metadata = _metadata_for_row(row, source_metadata)
     text = " ".join(
         (
             str(row["title"]),
@@ -194,7 +250,60 @@ def _importance_score(row: sqlite3.Row) -> int:
             score += weight
     if str(row["category"]) == "business_technology":
         score += 4
+    if metadata.region == "jp":
+        score += JP_REGION_BONUS
+    score += metadata.priority * SOURCE_PRIORITY_WEIGHT
     return score
+
+
+def _metadata_for_row(
+    row: sqlite3.Row,
+    source_metadata: dict[str, SourceMetadata],
+) -> SourceMetadata:
+    return source_metadata.get(str(row["source_name"]), SourceMetadata())
+
+
+def _load_source_metadata(sources_path: Path) -> dict[str, SourceMetadata]:
+    if not sources_path.exists():
+        return {}
+
+    with sources_path.open(encoding="utf-8") as file:
+        payload = yaml.safe_load(file) or {}
+
+    if not isinstance(payload, dict):
+        return {}
+
+    raw_sources = payload.get("sources", [])
+    if not isinstance(raw_sources, list):
+        return {}
+
+    metadata: dict[str, SourceMetadata] = {}
+    for raw_source in raw_sources:
+        if not isinstance(raw_source, dict):
+            continue
+        name = str(raw_source.get("name", "")).strip()
+        if not name:
+            continue
+        metadata[name] = SourceMetadata(
+            region=_region_from_config(raw_source.get("region")),
+            priority=_priority_from_config(raw_source.get("priority")),
+        )
+    return metadata
+
+
+def _region_from_config(value: object) -> str:
+    region = str(value or "").strip().lower()
+    if region in {"jp", "global"}:
+        return region
+    return "global"
+
+
+def _priority_from_config(value: object) -> int:
+    try:
+        priority = int(str(value).strip())
+    except (TypeError, ValueError):
+        return 1
+    return max(0, min(priority, 10))
 
 
 def _topic_weight(row: sqlite3.Row) -> int:
@@ -232,6 +341,8 @@ def _build_news_payload(
                 "title": article.title,
                 "url": article.url,
                 "source_name": article.source_name,
+                "source_region": article.source_region,
+                "source_priority": article.source_priority,
                 "category": article.category,
                 "published_at": article.published_at,
                 "summary": article.summary,
@@ -245,6 +356,8 @@ def _build_news_payload(
             {
                 "source_ref": article.source_ref,
                 "source_name": article.source_name,
+                "source_region": article.source_region,
+                "source_priority": article.source_priority,
                 "title": article.title,
                 "url": article.url,
             }
