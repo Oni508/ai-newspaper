@@ -264,8 +264,14 @@
             <ol class="reference-list">
               {% for item in view.references %}
                 <li>
+                  {% if item.source_ref %}{{ item.source_ref }} / {% endif %}
                   {{ item.source_name }}:
-                  <a href="{{ item.url }}">{{ item.title }}</a>
+                  {% if item.url %}
+                    <a href="{{ item.url }}">{{ item.title }}</a>
+                    <span>{{ item.url }}</span>
+                  {% else %}
+                    {{ item.title }}
+                  {% endif %}
                 </li>
               {% endfor %}
             </ol>

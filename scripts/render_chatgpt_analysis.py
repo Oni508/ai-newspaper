@@ -18,6 +18,7 @@ def main() -> int:
     )
     parser.add_argument("--analysis-json", type=Path, required=True)
     parser.add_argument("--schema", type=Path, required=True)
+    parser.add_argument("--news-payload", type=Path)
     parser.add_argument("--template-dir", type=Path, default=Path("templates"))
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
@@ -26,11 +27,17 @@ def main() -> int:
         payload = json.loads(args.analysis_json.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise AnalysisValidationError("analysis JSON must be an object")
+        news_payload = None
+        if args.news_payload is not None:
+            news_payload = json.loads(args.news_payload.read_text(encoding="utf-8"))
+            if not isinstance(news_payload, dict):
+                raise AnalysisValidationError("news payload JSON must be an object")
         validate_analysis_payload(payload, load_schema(args.schema))
         analysis_path, html_path = write_analysis_outputs(
             payload,
             template_dir=args.template_dir,
             output_dir=args.output_dir,
+            news_payload=news_payload,
         )
     except (AnalysisValidationError, json.JSONDecodeError) as exc:
         parser.error(str(exc))

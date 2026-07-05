@@ -37,12 +37,14 @@ jobs:
           --event-path "${GITHUB_EVENT_PATH}"
           --schema schemas/chatgpt_analysis.schema.json
           --output artifacts/chatgpt_analysis/analysis_output.json
+          --news-payload-output artifacts/chatgpt_analysis/news_payload.json
 
       - name: Render HTML digest
         run: >
           uv run python scripts/render_chatgpt_analysis.py
           --analysis-json artifacts/chatgpt_analysis/analysis_output.json
           --schema schemas/chatgpt_analysis.schema.json
+          --news-payload artifacts/chatgpt_analysis/news_payload.json
           --template-dir templates
           --output-dir artifacts/chatgpt_analysis/rendered
 
@@ -52,6 +54,7 @@ jobs:
           name: chatgpt-analysis-${{ github.event.issue.number }}-${{ github.run_id }}
           path: |
             artifacts/chatgpt_analysis/analysis_output.json
+            artifacts/chatgpt_analysis/news_payload.json
             artifacts/chatgpt_analysis/rendered/digest.html
           retention-days: 2
 

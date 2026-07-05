@@ -241,6 +241,15 @@ def _build_news_payload(
             }
             for article in articles
         ],
+        "sources": [
+            {
+                "source_ref": article.source_ref,
+                "source_name": article.source_name,
+                "title": article.title,
+                "url": article.url,
+            }
+            for article in articles
+        ],
     }
 
 

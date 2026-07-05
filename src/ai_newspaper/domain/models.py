@@ -75,6 +75,14 @@ class DigestEdition:
 
 
 @dataclass(frozen=True)
+class DigestReference:
+    source_ref: str
+    source_name: str
+    title: str
+    url: str
+
+
+@dataclass(frozen=True)
 class Article:
     title: str
     url: str
@@ -82,6 +90,7 @@ class Article:
     category: Category
     published_at: datetime | None = None
     summary: str = ""
+    source_ref: str = ""
 
 
 def category_from_value(value: object) -> Category:
@@ -96,3 +105,4 @@ class Digest:
     edition: DigestEdition
     articles: tuple[Article, ...] = field(default_factory=tuple)
     analyses: tuple[AnalysisResult, ...] = field(default_factory=tuple)
+    references: tuple[DigestReference, ...] = field(default_factory=tuple)

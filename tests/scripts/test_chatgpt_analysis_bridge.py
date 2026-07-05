@@ -14,6 +14,7 @@ from build_briefing_package import main as build_briefing_package_main
 from chatgpt_analysis_bridge import (
     AnalysisValidationError,
     extract_analysis_json,
+    extract_news_payload_json,
     load_schema,
     validate_analysis_payload,
     write_analysis_outputs,
@@ -35,6 +36,28 @@ def test_extract_analysis_json_requires_marker_and_fenced_json() -> None:
     assert payload["topics"] == [{"topic_id": "t1"}]
 
 
+def test_extract_news_payload_json_reads_issue_body_fenced_block() -> None:
+    payload = extract_news_payload_json(
+        """
+        # ChatGPT Project briefing input
+
+        ## news_payload.json
+
+        ```json
+        {"edition_id": "20260705-0800-jst", "articles": []}
+        ```
+
+        ## schema.json
+
+        ```json
+        {}
+        ```
+        """
+    )
+
+    assert payload["edition_id"] == "20260705-0800-jst"
+
+
 def test_validate_analysis_payload_rejects_forbidden_policy_terms() -> None:
     payload = _valid_payload()
     payload["topics"][0]["what_happened"] = "This includes buy recommendation text."
@@ -52,10 +75,17 @@ def test_write_analysis_outputs_renders_html(tmp_path: Path) -> None:
         payload,
         template_dir=Path("templates"),
         output_dir=output_dir,
+        news_payload=_valid_news_payload(),
     )
 
+    html = html_path.read_text(encoding="utf-8")
     assert analysis_path.read_text(encoding="utf-8").startswith("{")
-    assert "<!doctype html>" in html_path.read_text(encoding="utf-8")
+    assert "<!doctype html>" in html
+    assert "A001" in html
+    assert "Example News" in html
+    assert "AI chip policy update" in html
+    assert "https://example.com/ai-chip-policy" in html
+    assert 'href="#topic-1"' not in html
 
 
 def test_build_briefing_package_creates_expected_files(
@@ -91,6 +121,12 @@ def test_build_briefing_package_creates_expected_files(
     assert (output_dir / "issue_body.md").is_file()
     payload = json.loads((output_dir / "news_payload.json").read_text())
     assert payload["articles"][0]["source_ref"] == "A001"
+    assert payload["sources"][0] == {
+        "source_ref": "A001",
+        "source_name": "Example News",
+        "title": "AI chip policy update",
+        "url": "https://example.com/ai-chip-policy",
+    }
 
 
 def _valid_payload() -> dict[str, object]:
@@ -130,6 +166,35 @@ def _valid_payload() -> dict[str, object]:
                 },
                 "uncertainties": ["The article does not settle long-term demand."],
                 "source_refs": ["A001"],
+            }
+        ],
+    }
+
+
+def _valid_news_payload() -> dict[str, object]:
+    return {
+        "edition_id": "20260705-0800-jst",
+        "generated_at_jst": "2026-07-05T08:00:00+09:00",
+        "sources": [
+            {
+                "source_ref": "A001",
+                "source_name": "Example News",
+                "title": "AI chip policy update",
+                "url": "https://example.com/ai-chip-policy",
+            }
+        ],
+        "articles": [
+            {
+                "source_ref": "A001",
+                "title": "AI chip policy update",
+                "url": "https://example.com/ai-chip-policy",
+                "source_name": "Example News",
+                "category": "business_technology",
+                "published_at": "2026-07-05T08:00:00",
+                "summary": "Policy and semiconductor supply chain context.",
+                "topic_name": "AI chip policy update",
+                "topic_importance": "high",
+                "importance_score": 91,
             }
         ],
     }

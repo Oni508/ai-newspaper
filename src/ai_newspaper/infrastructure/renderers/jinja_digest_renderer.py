@@ -6,11 +6,18 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from ai_newspaper.domain.models import AnalysisResult, Article, Category, Digest
+from ai_newspaper.domain.models import (
+    AnalysisResult,
+    Article,
+    Category,
+    Digest,
+    DigestReference,
+)
 
 
 @dataclass(frozen=True)
 class RenderedArticle:
+    source_ref: str
     title: str
     url: str
     source_name: str
@@ -27,6 +34,14 @@ class RenderedArticle:
 
 
 @dataclass(frozen=True)
+class RenderedReference:
+    source_ref: str
+    source_name: str
+    title: str
+    url: str
+
+
+@dataclass(frozen=True)
 class DigestSection:
     title: str
     articles: tuple[RenderedArticle, ...]
@@ -40,7 +55,7 @@ class DigestView:
     sections: tuple[DigestSection, ...]
     business_items: tuple[RenderedArticle, ...]
     watch_items: tuple[RenderedArticle, ...]
-    references: tuple[RenderedArticle, ...]
+    references: tuple[RenderedReference, ...]
 
 
 class JinjaDigestRenderer:
@@ -78,6 +93,16 @@ def _build_view(digest: Digest) -> DigestView:
         for category, title in _CATEGORY_SECTIONS
     )
 
+    references = digest.references or tuple(
+        DigestReference(
+            source_ref=article.source_ref,
+            source_name=article.source_name,
+            title=article.title,
+            url=article.url,
+        )
+        for article in digest.articles
+    )
+
     return DigestView(
         generated_at=digest.edition.generated_at,
         label=digest.edition.label,
@@ -91,7 +116,7 @@ def _build_view(digest: Digest) -> DigestView:
             for article in articles
             if article.conditional_scenarios or article.next_checks
         ),
-        references=articles,
+        references=tuple(_rendered_reference(reference) for reference in references),
     )
 
 
@@ -100,6 +125,7 @@ def _rendered_article(
     analysis: AnalysisResult | None,
 ) -> RenderedArticle:
     return RenderedArticle(
+        source_ref=article.source_ref,
         title=article.title,
         url=article.url,
         source_name=article.source_name,
@@ -117,6 +143,15 @@ def _rendered_article(
         ),
         uncertainty=_split_paragraphs(analysis.uncertainty if analysis else ""),
         next_checks=analysis.next_checks if analysis else (),
+    )
+
+
+def _rendered_reference(reference: DigestReference) -> RenderedReference:
+    return RenderedReference(
+        source_ref=reference.source_ref,
+        source_name=reference.source_name,
+        title=reference.title,
+        url=reference.url,
     )
 
 

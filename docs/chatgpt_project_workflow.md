@@ -78,9 +78,18 @@ when all of these are true:
 - The comment author is the repository owner.
 
 The workflow extracts the fenced JSON block, validates it against
-`schemas/chatgpt_analysis.schema.json`, writes `analysis_output.json`, renders an
-HTML digest, uploads both files as an artifact, and posts a comment with the
-workflow run link.
+`schemas/chatgpt_analysis.schema.json`, extracts the original `news_payload.json`
+from the Issue body, writes `analysis_output.json`, renders an HTML digest with
+real source URLs resolved from `source_refs`, uploads the files as an artifact,
+and posts a comment with the workflow run link.
+
+The rendered artifact includes:
+
+```text
+analysis_output.json
+news_payload.json
+digest.html
+```
 
 Artifacts are retained for 2 days.
 

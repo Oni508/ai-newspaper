@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from ai_newspaper.domain.models import (
     Category,
     Digest,
     DigestEdition,
+    DigestReference,
     category_from_value,
 )
 from ai_newspaper.infrastructure.renderers.jinja_digest_renderer import (
@@ -45,6 +47,17 @@ class AnalysisValidationError(ValueError):
     pass
 
 
+@dataclass(frozen=True)
+class SourceReference:
+    source_ref: str
+    source_name: str
+    title: str
+    url: str
+    category: str
+    published_at: str | None
+    summary: str
+
+
 def extract_analysis_json(comment_body: str) -> dict[str, Any]:
     if MARKER not in comment_body:
         raise AnalysisValidationError(f"comment must contain {MARKER}")
@@ -69,6 +82,33 @@ def extract_analysis_json(comment_body: str) -> dict[str, Any]:
     raise AnalysisValidationError("; ".join(errors) or "valid JSON block not found")
 
 
+def extract_news_payload_json(issue_body: str) -> dict[str, Any]:
+    marker = "## news_payload.json"
+    if marker not in issue_body:
+        raise AnalysisValidationError("issue body must contain ## news_payload.json")
+
+    section = issue_body[issue_body.index(marker) :]
+    next_section = re.search(r"\n##\s+", section[len(marker) :])
+    if next_section:
+        section = section[: len(marker) + next_section.start()]
+
+    errors: list[str] = []
+    for match in FENCED_BLOCK_RE.finditer(section):
+        try:
+            payload = json.loads(match.group("body"))
+        except json.JSONDecodeError as exc:
+            errors.append(str(exc))
+            continue
+        if not isinstance(payload, dict):
+            errors.append("top-level news_payload JSON value must be an object")
+            continue
+        return payload
+
+    raise AnalysisValidationError(
+        "; ".join(errors) or "news_payload.json fenced JSON block not found"
+    )
+
+
 def load_schema(schema_path: Path) -> dict[str, Any]:
     data = json.loads(schema_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -91,9 +131,10 @@ def render_analysis_html(
     payload: dict[str, Any],
     *,
     template_dir: Path,
+    news_payload: dict[str, Any] | None = None,
 ) -> str:
     renderer = JinjaDigestRenderer(template_dir)
-    return renderer.render(_payload_to_digest(payload))
+    return renderer.render(_payload_to_digest(payload, news_payload=news_payload))
 
 
 def write_analysis_outputs(
@@ -101,6 +142,7 @@ def write_analysis_outputs(
     *,
     template_dir: Path,
     output_dir: Path,
+    news_payload: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     analysis_path = output_dir / "analysis_output.json"
@@ -110,7 +152,11 @@ def write_analysis_outputs(
         encoding="utf-8",
     )
     html_path.write_text(
-        render_analysis_html(payload, template_dir=template_dir),
+        render_analysis_html(
+            payload,
+            template_dir=template_dir,
+            news_payload=news_payload,
+        ),
         encoding="utf-8",
     )
     return analysis_path, html_path
@@ -182,12 +228,19 @@ def _validate_policy(payload: dict[str, Any], errors: list[str]) -> None:
             errors.append(f"policy violation: forbidden output term {term!r}")
 
 
-def _payload_to_digest(payload: dict[str, Any]) -> Digest:
+def _payload_to_digest(
+    payload: dict[str, Any],
+    *,
+    news_payload: dict[str, Any] | None = None,
+) -> Digest:
     generated_at = _parse_generated_at(payload.get("generated_at_jst"))
     edition_label = str(payload.get("edition_label") or _edition_label(generated_at))
     topics = payload.get("topics", [])
+    source_lookup = _source_reference_lookup(news_payload)
     articles: list[Article] = []
     analyses: list[AnalysisResult] = []
+    references: list[DigestReference] = []
+    seen_reference_keys: set[str] = set()
 
     if isinstance(topics, list):
         for index, topic in enumerate(topics, start=1):
@@ -195,25 +248,135 @@ def _payload_to_digest(payload: dict[str, Any]) -> Digest:
                 continue
             topic_id = str(topic.get("topic_id") or f"topic-{index}")
             source_refs = _string_list(topic.get("source_refs"))
-            article_url = _first_url(source_refs) or f"#{topic_id}"
+            resolved_sources = tuple(
+                source
+                for ref in source_refs
+                if (source := source_lookup.get(ref)) is not None
+            )
+            primary_source = resolved_sources[0] if resolved_sources else None
+            article_url = (
+                primary_source.url
+                if primary_source is not None
+                else _first_url(source_refs) or f"#{topic_id}"
+            )
             article = Article(
-                title=str(topic.get("headline") or topic_id),
+                title=(
+                    str(topic.get("headline") or "").strip()
+                    or (primary_source.title if primary_source is not None else "")
+                    or topic_id
+                ),
                 url=article_url,
                 source_name=(
-                    ", ".join(source_refs) if source_refs else "ChatGPT analysis"
+                    _source_name(resolved_sources, source_refs)
                 ),
                 category=_category(topic.get("category")),
-                published_at=None,
+                published_at=_parse_optional_datetime(
+                    primary_source.published_at if primary_source else None
+                ),
                 summary=str(topic.get("what_happened") or ""),
+                source_ref=", ".join(source_refs),
             )
             articles.append(article)
             analyses.append(_analysis_for_topic(article.url, topic))
+            for source in resolved_sources:
+                if source.source_ref in seen_reference_keys:
+                    continue
+                seen_reference_keys.add(source.source_ref)
+                references.append(
+                    DigestReference(
+                        source_ref=source.source_ref,
+                        source_name=source.source_name,
+                        title=source.title,
+                        url=source.url,
+                    )
+                )
+            for ref in source_refs:
+                if ref in seen_reference_keys or ref in source_lookup:
+                    continue
+                seen_reference_keys.add(ref)
+                references.append(
+                    DigestReference(
+                        source_ref=ref,
+                        source_name="Unresolved source",
+                        title=ref,
+                        url=_first_url((ref,)) or "",
+                    )
+                )
 
     return Digest(
         edition=DigestEdition(generated_at=generated_at, label=edition_label),
         articles=tuple(articles),
         analyses=tuple(analyses),
+        references=tuple(references),
     )
+
+
+def _source_reference_lookup(
+    news_payload: dict[str, Any] | None,
+) -> dict[str, SourceReference]:
+    if news_payload is None:
+        return {}
+    source_items = news_payload.get("sources")
+    articles = news_payload.get("articles")
+    if isinstance(source_items, list):
+        items = source_items
+    elif isinstance(articles, list):
+        items = articles
+    else:
+        return {}
+
+    references: dict[str, SourceReference] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        source_ref = str(item.get("source_ref") or "").strip()
+        url = str(item.get("url") or "").strip()
+        if not source_ref or not url:
+            continue
+        published_at = item.get("published_at")
+        references[source_ref] = SourceReference(
+            source_ref=source_ref,
+            source_name=str(item.get("source_name") or "").strip(),
+            title=str(item.get("title") or "").strip(),
+            url=url,
+            category=str(item.get("category") or "").strip(),
+            published_at=(
+                str(published_at).strip()
+                if published_at is not None and str(published_at).strip()
+                else None
+            ),
+            summary=str(item.get("summary") or "").strip(),
+        )
+    return references
+
+
+def _source_name(
+    resolved_sources: tuple[SourceReference, ...],
+    source_refs: tuple[str, ...],
+) -> str:
+    if resolved_sources:
+        names = tuple(
+            source.source_name or source.source_ref for source in resolved_sources
+        )
+        return ", ".join(dict.fromkeys(names))
+    if source_refs:
+        return ", ".join(source_refs)
+    return "ChatGPT analysis"
+
+
+def _parse_optional_datetime(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    normalized = value.strip().replace("Z", "+00:00")
+    if not normalized:
+        return None
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        return parsed.replace(tzinfo=None)
+    return parsed
 
 
 def _analysis_for_topic(article_url: str, topic: dict[str, Any]) -> AnalysisResult:
