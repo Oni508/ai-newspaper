@@ -1,0 +1,33 @@
+name: ChatGPT analysis bridge
+description: Submit or review ChatGPT Project analysis for an AI Newspaper briefing.
+title: "[AI Newspaper Input] YYYY-MM-DD_HHMM"
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this issue only for the AI Newspaper ChatGPT bridge.
+
+        Before running analysis in ChatGPT:
+        - Attach the GitHub repository `Oni508/ai-newspaper` to the chat.
+        - Do not use Deep Research.
+        - Use the generated `prompt.md`, `news_payload.json`, and `schema.json` from the briefing package.
+        - Return JSON only.
+
+        To trigger HTML rendering, post the ChatGPT result as an issue comment with the marker text `AI_NEWSPAPER_ANALYSIS_JSON`, followed by a fenced `json` code block.
+  - type: textarea
+    id: briefing-context
+    attributes:
+      label: Briefing context
+      description: Paste the generated issue body or link to the workflow artifact.
+      placeholder: Paste prompt, payload, or artifact information here.
+    validations:
+      required: true
+  - type: textarea
+    id: analysis-json
+    attributes:
+      label: ChatGPT analysis JSON
+      description: Optional. Prefer posting this as a comment after the issue is created.
+      render: json
+    validations:
+      required: false
